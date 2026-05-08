@@ -38,23 +38,23 @@ model Session {
 }
 
 model User {
-  id                    String    @id @default(cuid())
-  name                  String?
-  email                 String?   @unique
-  emailVerified         DateTime?
-  image                 String?
-  phoneNumber           String?   @unique
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  phoneNumber   String?   @unique
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  accounts              Account[]
-  sessions              Session[]
-  profiles              Profile[]
+  accounts Account[]
+  sessions Session[]
+  profiles Profile[]
 
-  stripeCustomerId      String?   @unique @map("stripe_customer_id")
-  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id")
-  stripePriceId         String?             @map("stripe_price_id")
-  stripeCurrentPeriodEnd DateTime?           @map("stripe_current_period_end")
+  stripeCustomerId       String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
+  stripePriceId          String?   @map("stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
 }
 
 model VerificationToken {
@@ -77,22 +77,22 @@ model Profile {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  icon       Icon     @relation(fields: [iconId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  myList     MyShow[]
+  icon   Icon     @relation(fields: [iconId], references: [id], onDelete: Cascade)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  myList MyShow[]
 
   @@index([userId])
   @@index([iconId])
 }
 
 model Icon {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   title     String
   href      String
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  profiles  Profile[]
+  profiles Profile[]
 }
 
 model Show {
@@ -132,8 +132,10 @@ model Show {
   createdAt          DateTime   @default(now()) @map("created_at")
   updatedAt          DateTime   @updatedAt @map("updated_at")
 
-  myShows            MyShow[]
-  movies             Movie[]
+  myShows  MyShow[]
+  movies   Movie[]
+  seasons  Season[]
+  episodes Episode[]
 
   @@index([tmdbId])
   @@index([media_type])
@@ -142,19 +144,64 @@ model Show {
 }
 
 model Movie {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  showId      String
-  season      Int      @default(0)
-  episode     Int      @default(0)
-  view_count  Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  key        String   @unique
+  showId     String
+  runtime    Int?
+  view_count Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
 
   @@index([showId])
   @@index([key])
+}
+
+model Season {
+  id            String   @id @default(cuid())
+  showId        String   @map("show_id")
+  season_number Int
+  overview      String?  @db.Text
+  vote_average  Float?
+  air_date      String?
+  poster_path   String?
+  name          String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  show     Show      @relation(fields: [showId], references: [id], onDelete: Cascade)
+  episodes Episode[]
+
+  @@unique([showId, season_number])
+  @@index([showId])
+  @@index([season_number])
+  @@map("seasons")
+}
+
+model Episode {
+  id             String   @id @default(cuid())
+  showId         String   @map("show_id")
+  seasonId       String   @map("season_id")
+  episode_number Int
+  title          String?
+  video_key      String   @unique
+  runtime        Int?
+  overview       String?  @db.Text
+  still_path     String?
+  vote_average   Float?
+  air_date       String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  show   Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, episode_number])
+  @@index([showId])
+  @@index([seasonId])
+  @@index([episode_number])
+  @@map("episodes")
 }
 
 model Genre {
@@ -176,12 +223,12 @@ model OriginalCountry {
 }
 
 model MyShow {
-  id                 String     @id @default(cuid())
-  showId             String
-  profileId          String?
+  id        String  @id @default(cuid())
+  showId    String
+  profileId String?
 
-  show               Show       @relation(fields: [showId], references: [id], onDelete: Cascade)
-  profile            Profile?   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  show    Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([showId, profileId])
   @@index([profileId])

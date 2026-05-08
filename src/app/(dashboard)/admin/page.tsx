@@ -51,17 +51,43 @@ interface Show {
   createdAt: Date
   updatedAt: Date
   movies: Movie[]
+  seasons: Season[]
 }
 
 interface Movie {
   id: string
   key: string
   showId: string
-  season: number
-  episode: number
+  runtime: number | null
   view_count: number
   createdAt: Date
   updatedAt: Date
+}
+
+interface Season {
+  id: string
+  showId: string
+  season_number: number
+  overview: string | null
+  vote_average: number | null
+  air_date: string | null
+  poster_path: string | null
+  name: string | null
+  episodes: Episode[]
+}
+
+interface Episode {
+  id: string
+  showId: string
+  seasonId: string
+  episode_number: number
+  title: string | null
+  video_key: string
+  runtime: number | null
+  overview: string | null
+  still_path: string | null
+  vote_average: number | null
+  air_date: string | null
 }
 
 interface ShowWithDetails extends Show {
@@ -396,34 +422,46 @@ export default function AdminPage() {
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>
-              {selectedShow?.title || selectedShow?.name} - Movie Details
-            </DialogTitle>
+            <DialogTitle>{selectedShow?.title || selectedShow?.name} - Video Details</DialogTitle>
             <DialogDescription>
-              Total Movies: {selectedShow?.movies.length || 0}
+              {selectedShow?.media_type === "movie"
+                ? `Total Movies: ${selectedShow?.movies.length || 0}`
+                : `Total Episodes: ${
+                    selectedShow?.seasons.reduce((acc, season) => acc + season.episodes.length, 0) || 0
+                  }`}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
             <div className="space-y-4">
-              {selectedShow?.movies.map((movie) => (
-                <div key={movie.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="text-center">
-                      <div className="text-sm font-medium">S{movie.season}</div>
-                      <div className="text-xs text-muted-foreground">E{movie.episode}</div>
+              {selectedShow?.media_type === "movie"
+                ? selectedShow?.movies.map((movie) => (
+                    <div key={movie.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <p className="font-medium">Key: {movie.key}</p>
+                          <p className="text-sm text-muted-foreground">Views: {movie.view_count}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline">Movie</Badge>
                     </div>
-                    <div>
-                      <p className="font-medium">Key: {movie.key}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Views: {movie.view_count}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="outline">
-                    {movie.season === 0 && movie.episode === 0 ? "Movie" : `Episode ${movie.episode}`}
-                  </Badge>
-                </div>
-              ))}
+                  ))
+                : selectedShow?.seasons.flatMap((season) =>
+                    season.episodes.map((episode) => (
+                      <div key={episode.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <div className="text-sm font-medium">S{season.season_number}</div>
+                            <div className="text-xs text-muted-foreground">E{episode.episode_number}</div>
+                          </div>
+                          <div>
+                            <p className="font-medium">{episode.title || "Untitled episode"}</p>
+                            <p className="text-sm text-muted-foreground">Key: {episode.video_key}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline">Episode</Badge>
+                      </div>
+                    ))
+                  )}
             </div>
           </ScrollArea>
         </DialogContent>
