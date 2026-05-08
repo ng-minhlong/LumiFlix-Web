@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Necessary for NextAuth
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  phoneNumber           String?   @unique
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  accounts              Account[]
+  sessions              Session[]
+  profiles              Profile[]
+
+  stripeCustomerId      String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id")
+  stripePriceId         String?             @map("stripe_price_id")
+  stripeCurrentPeriodEnd DateTime?           @map("stripe_current_period_end")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  email      String?
+  pin        Int?
+  iconId     String
+  language   LANGUAGE @default(ENGLISH)
+  gameHandle String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  icon       Icon     @relation(fields: [iconId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  myList     MyShow[]
+
+  @@index([userId])
+  @@index([iconId])
+}
+
+model Icon {
+  id        String    @id @default(cuid())
+  title     String
+  href      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  profiles  Profile[]
+}
+
+model Show {
+  id                 String     @id @default(cuid())
+  tmdbId             Int        @unique
+  name               String?
+  title              String?
+  original_title     String?
+  poster_path        String?
+  backdrop_path      String?
+  overview           String?    @db.Text
+  original_language  String
+  media_type         MEDIA_TYPE
+  status             String?
+  tagline            String?
+  budget             Int?
+  homepage           String?
+  imdb_id            String?
+  popularity         Float
+  vote_average       Float
+  vote_count         Int
+  release_date       String?
+  first_air_date     String?
+  last_air_date      String?
+  number_of_seasons  Int?
+  number_of_episodes Int?
+  revenue            Int?
+  runtime            Int?
+  adult              Boolean    @default(false)
+  video              Boolean    @default(false)
+  category           Json?
+  isFeatured         Boolean    @default(false)
+  is_show_completed  Boolean    @default(false)
+  slug               String     @unique
+  genre_ids          Int[]
+  origin_country     String[]
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  myShows            MyShow[]
+  movies             Movie[]
+
+  @@index([tmdbId])
+  @@index([media_type])
+  @@index([isFeatured])
+  @@index([slug])
+}
+
+model Movie {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  showId      String
+  season      Int      @default(0)
+  episode     Int      @default(0)
+  view_count  Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  @@index([showId])
+  @@index([key])
+}
+
+model Genre {
+  id   Int    @id
+  type String
+  key  String @unique
+  name String
+
+  @@index([type])
+  @@index([key])
+}
+
+model OriginalCountry {
+  id   String @id
+  key  String @unique
+  name String
+
+  @@index([key])
+}
+
+model MyShow {
+  id                 String     @id @default(cuid())
+  showId             String
+  profileId          String?
+
+  show               Show       @relation(fields: [showId], references: [id], onDelete: Cascade)
+  profile            Profile?   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([showId, profileId])
+  @@index([profileId])
+  @@index([showId])
+}
+
+enum MEDIA_TYPE {
+  movie
+  tv
+}
+
+enum LANGUAGE {
+  BAHASA_INDONESIA
+  BAHASA_MELAYU
+  DANSK
+  DEUTSCH
+  ENGLISH
+  ESPANOL
+  FILIPINO
+  FRANCAIS
+  HRVATSKI
+  ITALIANO
+  HINDI
+  BANGLA
+  MAGYAR
+  NEDERLANDS
+  NORSK_BOKMAL
+  POLSKI
+  PORTUGUES
+  ROMANA
+  SUOMI
+  SVENSKA
+  TIENG_VIET
+  TURKCE
+  CESTINA
+}
