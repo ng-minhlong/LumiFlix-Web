@@ -49,23 +49,18 @@ const SOURCE_OPTIONS = [
 ] as const
 
 function buildHref({
-  basePath,
+  showSlug,
+  videoKey,
   source,
-  season,
-  episode,
 }: {
-  basePath: string
+  showSlug: string
+  videoKey: string
   source: string
-  season?: number
-  episode?: number
 }) {
   const params = new URLSearchParams()
   params.set("source", source)
-
-  if (season) params.set("season", String(season))
-  if (episode) params.set("episode", String(episode))
-
-  return `${basePath}?${params.toString()}`
+  // Không cần set season/episode vào query nữa vì thông tin đã nằm trong video_key và logic server-side
+  return `/movie/${showSlug}/${videoKey}`
 }
 
 export default async function MovieDetailPage({
@@ -200,38 +195,38 @@ export default async function MovieDetailPage({
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-black/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-8">
-          <Link
-            href={`/movie/${show.slug}`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
-          >
-            <ArrowLeft className="size-4" />
-            Return show
-          </Link>
 
-          <div className="hidden items-center gap-2 text-sm text-white/60 md:flex">
-            <span>{showTitle}</span>
-            {!isMovie && (
-              <>
-                <ChevronRight className="size-4" />
-                <span>
-                  S{String(selectedSeason?.season_number ?? 1).padStart(2, "0")}
-                </span>
-                <ChevronRight className="size-4" />
-                <span>
-                  E{String(selectedEpisode?.episode_number ?? 1).padStart(2, "0")}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
 
       <main>
         {/* Player section */}
         <section className="relative overflow-hidden border-b border-white/5">
+          {/* Top bar */}
+          <header className="sticky top-0 z-50 border-b border-white/5 bg-black/70 backdrop-blur-xl">
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 md:px-8">
+              <Link
+                href={`/movie/${show.slug}`}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10"
+              >
+                <ArrowLeft className="size-4" />
+              </Link>
+
+              <div className="hidden items-center gap-2 text-sm text-white/60 md:flex">
+                <span>{showTitle}</span>
+                {!isMovie && (
+                  <>
+                    <ChevronRight className="size-4" />
+                    <span>
+                      S{String(selectedSeason?.season_number ?? 1).padStart(2, "0")}
+                    </span>
+                    <ChevronRight className="size-4" />
+                    <span>
+                      E{String(selectedEpisode?.episode_number ?? 1).padStart(2, "0")}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </header>
           <div className="absolute inset-0">
             {heroBackdrop && (
               <div
@@ -288,10 +283,9 @@ export default async function MovieDetailPage({
                     <Link
                       key={source.id}
                       href={buildHref({
-                        basePath,
+                        showSlug: show.slug,
+                        videoKey: params.slugMovie, // Giữ nguyên key hiện tại
                         source: source.id,
-                        season: selectedSeason?.season_number ?? undefined,
-                        episode: selectedEpisode?.episode_number ?? undefined,
                       })}
                       className={[
                         "inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition",
@@ -314,10 +308,9 @@ export default async function MovieDetailPage({
                 {prevEpisode ? (
                   <Link
                     href={buildHref({
-                      basePath,
+                      showSlug: show.slug,
+                      videoKey: prevEpisode.video_key, // Dùng video_key của tập trước
                       source: currentSourceId,
-                      season: prevEpisode.season?.season_number,
-                      episode: prevEpisode.episode_number,
                     })}
                     className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10"
                   >
@@ -339,10 +332,9 @@ export default async function MovieDetailPage({
                 {nextEpisode ? (
                   <Link
                     href={buildHref({
-                      basePath,
+                      showSlug: show.slug,
+                      videoKey: nextEpisode.video_key, // Dùng video_key của tập tiếp theo
                       source: currentSourceId,
-                      season: nextEpisode.season?.season_number,
-                      episode: nextEpisode.episode_number,
                     })}
                     className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10"
                   >
@@ -521,12 +513,9 @@ export default async function MovieDetailPage({
 
                             <Link
                               href={buildHref({
-                                basePath,
+                                showSlug: show.slug,
+                                videoKey: season.episodes[0]?.video_key ?? params.slugMovie,
                                 source: currentSourceId,
-                                season: season.season_number,
-                                episode:
-                                  season.episodes[0]?.episode_number ??
-                                  undefined,
                               })}
                               className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
                             >
@@ -545,10 +534,9 @@ export default async function MovieDetailPage({
                                 <Link
                                   key={ep.id}
                                   href={buildHref({
-                                    basePath,
+                                    showSlug: show.slug,
+                                    videoKey: ep.video_key, // Trỏ thẳng đến video_key của tập này
                                     source: currentSourceId,
-                                    season: season.season_number,
-                                    episode: ep.episode_number,
                                   })}
                                   className={[
                                     "group overflow-hidden rounded-2xl border transition",
